@@ -3,7 +3,7 @@
 #include <sys/time.h>
 
 int s[100];
-struct timeval tm;
+struct timeval exec_tm0, exec_tm1;
 
 int main(int argc, char *argv[]){
 
@@ -60,8 +60,7 @@ int main(int argc, char *argv[]){
       fseek(seekF, 0, SEEK_SET);
     }
 
-
-    gettimeofday( &tm, NULL );
+    gettimeofday( &exec_tm0, NULL );
 
     if(strcmp(operation, "--mem-lin"))
         inMemLin(keyA, keyFsize, seekA, seekFsize, s);
@@ -74,7 +73,9 @@ int main(int argc, char *argv[]){
     else
         printf("Wrong operation selected\n");
 
-    gettimeofday( &tm, NULL );
+    gettimeofday( &exec_tm1, NULL );
+
+    printf( "Time: %ld.%06ld\n", exec_tm1.tv_sec - exec_tm0.tv_sec, exec_tm1.tv_usec - exec_tm0.tv_usec );
 
   }else{
     printf("Incorrect input\n");
