@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 
 int s[100];
+struct timeval tm;
 
 int main(int argc, char *argv[]){
 
@@ -11,7 +13,6 @@ int main(int argc, char *argv[]){
   int *keyA, *seekA;
 
   if(argc > 3){
-    printf("Input files :\n");
     operation = argv[1];
 
     keyF = fopen(argv[2], "rb");
@@ -41,9 +42,9 @@ int main(int argc, char *argv[]){
         fseek(keyF, count*sizeof(int), SEEK_SET);
         fread(&tmp, sizeof(int), 1, keyF);
         keyA[count] = tmp;
-        printf("%d\n", keyA[count]);
         count++;
       }
+      fseek(keyF, 0, SEEK_SET);
     }
 
     printf("Seek File\n");
@@ -54,18 +55,26 @@ int main(int argc, char *argv[]){
         fseek(seekF, count*sizeof(int), SEEK_SET);
         fread(&tmp, sizeof(int), 1, seekF);
         seekA[count] = tmp;
-        printf("%d\n", seekA[count]);
         count++;
       }
+      fseek(seekF, 0, SEEK_SET);
     }
 
+
+    gettimeofday( &tm, NULL );
 
     if(strcmp(operation, "--mem-lin"))
         inMemLin(keyA, keyFsize, seekA, seekFsize, s);
     else if(strcmp(operation, "--mem-bin"))
         inMemBin(keyA, keyFsize, seekA, seekFsize, s);
+    else if(strcmp(operation, "--disk-lin"))
+        outMemLin(keyF, keyFsize, seekF, seekFsize, s);
+    else if(strcmp(operation, "--disk-bin"))
+        outMemLin(keyF, keyFsize, seekF, seekFsize, s);
     else
         printf("Wrong operation selected\n");
+
+    gettimeofday( &tm, NULL );
 
   }else{
     printf("Incorrect input\n");
@@ -74,7 +83,7 @@ int main(int argc, char *argv[]){
 }
 
 
-void inMemLin(int *key, int *keyLength, int *seek, int *seekLength, int *s){
+void inMemLin(int *key, int keyLength, int *seek, int seekLength, int *s){
 
   int i,j;
   for(i=0; i<keyLength; i++){
@@ -86,7 +95,7 @@ void inMemLin(int *key, int *keyLength, int *seek, int *seekLength, int *s){
   results(s, seek, seekLength);
 }
 
-void inMemBin(int *key, int *keyLength, int *seek, int *seekLength, int *s){
+void inMemBin(int *key, int keyLength, int *seek, int seekLength, int *s){
 
   int j;
   for(j=0; j<seekLength; j++){
@@ -103,21 +112,74 @@ int binarySearch(int arr[], int l, int r, int x)
 
         if (arr[mid] == x)
             return 1;
-
         if (arr[mid] > x)
             return binarySearch(arr, l, mid-1, x);
-
-        return binarySearch(arr, mid+1, r, x);
+        else
+          return binarySearch(arr, mid+1, r, x);
    }
    return 0;
 }
 
-void results(int s[], int seek[], int length){
+void results(int *s, int *seek, int length){
   int j;
   for(j=0; j<length; j++){
     if(s[j] == 1)
-        printf("            %d: %s\n",seek[j], "Yes");
+        printf("%12d: %s\n",seek[j], "Yes");
     else
-        printf("            %d: %s\n",seek[j], "No");
+        printf("%12d: %s\n",seek[j], "No");
   }
+}
+
+void outMemLin(FILE *key, int keyLength, FILE *seek, int seekLength, int *s){
+
+  int seekFpos, keyFpos, i;
+
+  for(i=0; i<seekLength; i++) s[i] = 0;
+
+  for(seekFpos = 0; seekFpos < seekLength; seekFpos++){
+    int seekV = getData(*seek, seekFpos);
+    for(keyFpos = 0; keyFpos < keyLength; keyFpos++){
+      int keyV = getData(*key, keyFpos);
+
+      if(seekV == keyV){
+        s[seekFpos] = 1;
+        break;
+      }
+    }
+  }
+  results(s, seek, seekLength);
+}
+
+void outMemBin(FILE *key, int keyLength, FILE *seek, int seekLength, int *s){
+  int j;
+  for(j=0; j<seekLength; j++){
+      s[j] = binarySearchF(*key, 0, keyLength, getData(*seek, j));
+  }
+  results(s, seek, seekLength);
+}
+
+int binarySearchF(FILE *fp, int l, int r, int x)
+{
+   if (r >= l)
+   {
+        int mid = l + (r - l)/2;
+
+        if (getData(*fp, mid) == x)
+            return 1;
+        if (getData(*fp, mid) > x)
+            return binarySearchF(fp, l, mid-1, x);
+        else
+          return binarySearchF(fp, mid+1, r, x);
+   }
+   return 0;
+}
+
+int getData(FILE *fp, int offset){
+
+  int tmp;
+
+  fseek(fp, offset*sizeof(int), SEEK_SET);
+  fread(&tmp, sizeof(int), 1, fp);
+
+  return tmp;
 }
