@@ -8,7 +8,7 @@ int main(int argc, char *argv[]){
   char *operation;
   FILE *keyF, *seekF;
   int count = 0,i,j;
-  int keyA[100], seekA[100];
+  int *keyA, *seekA;
 
   if(argc > 3){
     printf("Input files :\n");
@@ -51,7 +51,6 @@ int main(int argc, char *argv[]){
     if(seekF != NULL){
       count = 0;
       while(!feof(seekF)){
-
         fseek(seekF, count*sizeof(int), SEEK_SET);
         fread(&tmp, sizeof(int), 1, seekF);
         seekA[count] = tmp;
@@ -60,19 +59,74 @@ int main(int argc, char *argv[]){
       }
     }
 
-    for(i=0; i<keyFsize; i++){
-      for(j=0; j<seekFsize; j++){
-        if(keyA[i] == seekA[j])
-          s[j] = 1;
-      }
-    }
 
-    for(i=0; i<seekFsize; i++){
-      printf("s[%d] = %d\n",i,s[i]);
-    }
+    if(strcmp(operation, "--mem-lin"))
+        inMemLin(keyA, keyFsize, seekA, seekFsize, s);
+    else if(strcmp(operation, "--mem-bin"))
+        inMemBin(keyA, keyFsize, seekA, seekFsize, s);
+    else
+        printf("Wrong operation selected\n");
 
   }else{
     printf("Incorrect input\n");
   }
   return 0;
+}
+
+
+void inMemLin(int *key, int *keyLength, int *seek, int *seekLength, int *s){
+
+  int i,j;
+  for(i=0; i<keyLength; i++){
+    for(j=0; j<seekLength; j++){
+      if(key[i] == seek[j])
+        s[j] = 1;
+    }
+  }
+  results(s, seek, seekLength);
+}
+
+void inMemBin(int *key, int *keyLength, int *seek, int *seekLength, int *s){
+
+  int j;
+  for(j=0; j<seekLength; j++){
+      s[j] = binarySearch(key, 0, keyLength, seek[j]);
+  }
+  results(s, seek, seekLength);
+}
+
+int binarySearch(int arr[], int l, int r, int x)
+{
+   if (r >= l)
+   {
+        int mid = l + (r - l)/2;
+
+        // If the element is present at the middle
+        // itself
+        if (arr[mid] == x)
+            return 1;
+
+        // If element is smaller than mid, then
+        // it can only be present in left subarray
+        if (arr[mid] > x)
+            return binarySearch(arr, l, mid-1, x);
+
+        // Else the element can only be present
+        // in right subarray
+        return binarySearch(arr, mid+1, r, x);
+   }
+
+   // We reach here when element is not
+   // present in array
+   return 0;
+}
+
+void results(int s[], int seek[], int length){
+  int j;
+  for(j=0; j<length; j++){
+    if(s[j] == 1)
+        printf("            %d: %s\n",seek[j], "Yes");
+    else
+        printf("            %d: %s\n",seek[j], "No");
+  }
 }
